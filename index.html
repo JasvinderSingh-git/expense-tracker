@@ -188,6 +188,15 @@
   </div>
 
 
+  <p id="modeCheck"></p>
+
+  <script>
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    document.getElementById("modeCheck").innerText = 
+      isStandalone ? "Running as app" : "Running in browser";
+  </script>
+
+
   <script>
     let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
 
