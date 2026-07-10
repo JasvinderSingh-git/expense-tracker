@@ -190,18 +190,7 @@
 
   <p id="modeCheck"></p>
 
-  <script>
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-    document.getElementById("modeCheck").innerText = 
-      isStandalone ? "Running as app" : "Running in browser";
-  </script>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js");
-    }
-  </script>
-
+  
   <script>
     let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
 
@@ -372,6 +361,19 @@
     renderAll();
   </script>
 
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js");
+    }
+  </script>
+
+  <script>
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    document.getElementById("modeCheck").innerText = 
+      isStandalone ? "Running as app" : "Running in browser";
+  </script>
+  
   
 </body>
 </html>
