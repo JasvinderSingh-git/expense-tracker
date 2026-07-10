@@ -1,1 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" href="#2563eb">
+  <title>Expense Tracker</title>
 
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    #amount {
+      width: 180px;
+    }
+
+    #expenseName {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    button {
+      padding: 12px 18px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .reset-btn {
+      background: #dc2626;
+    }
+
+    .reset-btn:hover {
+      background: #b91c1c;
+    }
+
+    .section {
+      margin-top: 25px;
+    }
+
+    .graph-row {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+      gap: 10px;
+    }
+
+    .label {
+      width: 160px;
+      font-weight: bold;
+    }
+
+    .bar-container {
+      flex: 1;
+      background: #e5e7eb;
+      height: 28px;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      background: #22c55e;
+      color: white;
+      text-align: right;
+      padding-right: 10px;
+      line-height: 28px;
+      border-radius: 20px;
+      box-sizing: border-box;
+      min-width: 60px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+    }
+
+    .delete-btn {
+      background: #ef4444;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #777;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Expense Tracker</h1>
+
+    <div class="form">
+      <!-- Amount first -->
+      <input 
+        type="number" 
+        id="amount" 
+        placeholder="Enter amount" 
+      />
+
+      <!-- Expense name with dropdown suggestion -->
+      <input 
+        type="text" 
+        id="expenseName" 
+        placeholder="Spent on what?" 
+        list="expenseSuggestions" 
+      />
+
+      <datalist id="expenseSuggestions"></datalist>
+
+      <button onclick="addExpense()">Add Expense</button>
+      <button class="reset-btn" onclick="resetExpenses()">Reset All</button>
+    </div>
+
+    <div class="section">
+      <h2>Expense Graph</h2>
+      <div id="graph"></div>
+    </div>
+
+    <div class="section">
+      <h2>Expense History</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Amount</th>
+            <th>Spent On</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="expenseTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <script>
+    let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+
+    function saveExpenses() {
+      localStorage.setItem("expenses", JSON.stringify(expenses));
+    }
+
+    function addExpense() {
+      const amountInput = document.getElementById("amount");
+      const expenseNameInput = document.getElementById("expenseName");
+
+      const amount = Number(amountInput.value);
+      const name = expenseNameInput.value.trim();
+
+      if (!amount || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+      }
+
+      if (name === "") {
+        alert("Please enter what you spent money on.");
+        return;
+      }
+
+      const expense = {
+        id: Date.now(),
+        amount: amount,
+        name: name,
+        date: new Date().toLocaleString()
+      };
+
+      expenses.push(expense);
+      saveExpenses();
+
+      amountInput.value = "";
+      expenseNameInput.value = "";
+      amountInput.focus();
+
+      renderAll();
+    }
+
+    function getExpenseSummary() {
+      const summary = {};
+
+      expenses.forEach(expense => {
+        const name = expense.name;
+
+        if (!summary[name]) {
+          summary[name] = 0;
+        }
+
+        summary[name] += expense.amount;
+      });
+
+      return Object.entries(summary)
+        .map(([name, total]) => ({ name, total }))
+        .sort((a, b) => b.total - a.total);
+    }
+
+    function renderGraph() {
+      const graph = document.getElementById("graph");
+      graph.innerHTML = "";
+
+      const summary = getExpenseSummary();
+
+      if (summary.length === 0) {
+        graph.innerHTML = `<div class="empty">No expenses added yet.</div>`;
+        return;
+      }
+
+      const maxAmount = summary[0].total;
+
+      summary.forEach(item => {
+        const percentage = (item.total / maxAmount) * 100;
+
+        const row = document.createElement("div");
+        row.className = "graph-row";
+
+        row.innerHTML = `
+          <div class="label">${item.name}</div>
+          <div class="bar-container">
+            <div class="bar" style="width: ${percentage}%;">
+              ₹${item.total.toFixed(2)}
+            </div>
+          </div>
+        `;
+
+        graph.appendChild(row);
+      });
+    }
+
+    function renderTable() {
+      const table = document.getElementById("expenseTable");
+      table.innerHTML = "";
+
+      if (expenses.length === 0) {
+        table.innerHTML = `
+          <tr>
+            <td colspan="4" class="empty">No expense history.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      [...expenses].reverse().forEach(expense => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>₹${expense.amount.toFixed(2)}</td>
+          <td>${expense.name}</td>
+          <td>${expense.date}</td>
+          <td>
+            <button class="delete-btn" onclick="deleteExpense(${expense.id})">
+              Delete
+            </button>
+          </td>
+        `;
+
+        table.appendChild(row);
+      });
+    }
+
+    function renderSuggestions() {
+      const datalist = document.getElementById("expenseSuggestions");
+      datalist.innerHTML = "";
+
+      const names = [...new Set(expenses.map(expense => expense.name))];
+
+      names.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        datalist.appendChild(option);
+      });
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter(expense => expense.id !== id);
+      saveExpenses();
+      renderAll();
+    }
+
+    function resetExpenses() {
+      if (confirm("Are you sure you want to delete all expenses?")) {
+        expenses = [];
+        saveExpenses();
+        renderAll();
+      }
+    }
+
+    function renderAll() {
+      renderGraph();
+      renderTable();
+      renderSuggestions();
+    }
+
+    document.getElementById("amount").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        document.getElementById("expenseName").focus();
+      }
+    });
+
+    document.getElementById("expenseName").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        addExpense();
+      }
+    });
+
+    renderAll();
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+    </script>
+</body>
+</html>
